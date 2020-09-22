@@ -5,7 +5,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -24,9 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
     @WebMvcTest  charakteryzuje testy wyizolowanej warstwy kontrolera.
     Nie potrzebujemy adnotacji @AutoConfigureMockMvc - podejrzyj @WebMvcTest, będzie wiadomo dlaczego :).
  */
-//@SpringBootTest
-@WebMvcTest
-//@AutoConfigureMockMvc
+@SpringBootTest
+@AutoConfigureMockMvc
 class GreetControllerTest {
 
     @Autowired
@@ -50,8 +51,6 @@ class GreetControllerTest {
         private BookService bookService;
 
      */
-    @MockBean
-    private GreetService greetService;
 
     @Test
     @DisplayName("http://localhost/greet -> 400")
@@ -74,7 +73,6 @@ class GreetControllerTest {
 
             Mockito.when(greetService.greet("X", true)).thenReturn(new Response("Hello, X!", LocalDateTime.now()));
          */
-        Mockito.when(greetService.greet("X", true)).thenReturn(new Response("Hello, X!", LocalDateTime.now()));
 
         ResultActions resultActions = mockMvc.perform(MockMvcRequestBuilders.get("/greet")
                 .contentType("application/json")
@@ -109,7 +107,6 @@ class GreetControllerTest {
             TODO 5 pora na Twoją implementację - analagicznie do todos'a 4  i w oparciu o nazwę testu / komunikat z
              @DisplayName, ustaw zachowanie metody greetService.greet
          */
-        Mockito.when(greetService.greet("World", true)).thenReturn(new Response("Hello, World!", LocalDateTime.now()));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/greet")
                 .contentType("application/json")
