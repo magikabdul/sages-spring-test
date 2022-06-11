@@ -1,5 +1,6 @@
 package workshop.springb.testing.repository;
 
+import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -74,11 +75,9 @@ class ResponseRepositoryTest {
                 .hasNoNullFieldsOrProperties()
                 .hasFieldOrPropertyWithValue(FIELD_ID, 1L)
                 .hasFieldOrPropertyWithValue(FIELD_GREETING, "Hello, Thomas!")
-                .hasFieldOrProperty(FIELD_LOCAL_DATE_TIME);
-
-//                .has(() -> LocalDateTime.now().isAfter(savedResponse.get().getLocalDateTime()));
+                .hasFieldOrProperty(FIELD_LOCAL_DATE_TIME)
+                .matches((response) -> LocalDateTime.now().isAfter(response.getLocalDateTime()));
     }
-
 }
 
 /*
