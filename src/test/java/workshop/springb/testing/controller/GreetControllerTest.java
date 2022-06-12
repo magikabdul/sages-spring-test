@@ -19,6 +19,7 @@ import workshop.springb.testing.service.GreetService;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 /*
@@ -26,14 +27,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
     @WebMvcTest  charakteryzuje testy wyizolowanej warstwy kontrolera.
     Nie potrzebujemy adnotacji @AutoConfigureMockMvc - podejrzyj @WebMvcTest, będzie wiadomo dlaczego :).
  */
-@SpringBootTest
-@AutoConfigureMockMvc
+//@SpringBootTest
+//@AutoConfigureMockMvc
+@WebMvcTest
 class GreetControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockBean
+    private GreetService greetService;
 
     /*
         TODO 3 pora na mock'owanie - zanim to zrobimy, uruchom test i zaobserwuj logi:
@@ -74,6 +79,10 @@ class GreetControllerTest {
             Mockito.when(greetService.greet("X", true)).thenReturn(new Response("Hello, X!", LocalDateTime.now()));
          */
 
+        var expectedResponse = new Response("Hello, X!", LocalDateTime.now());
+
+        when(greetService.greet("X", true)).thenReturn(expectedResponse);
+
         ResultActions resultActions = mockMvc.perform(MockMvcRequestBuilders.get("/greet")
                 .contentType("application/json")
                 .param("name", "X")
@@ -102,7 +111,9 @@ class GreetControllerTest {
     @Test
     @DisplayName("http://localhost/greet?isFormal=true -> 200")
     public void greetEndpoint_missingName_IsFormal_true_shouldReturn200() throws Exception {
+        var expectedResponse = new Response("Hello, World!", LocalDateTime.now());
 
+        when(greetService.greet("World", true)).thenReturn(expectedResponse);
         /*
             TODO 5 pora na Twoją implementację - analagicznie do todos'a 4  i w oparciu o nazwę testu / komunikat z
              @DisplayName, ustaw zachowanie metody greetService.greet
