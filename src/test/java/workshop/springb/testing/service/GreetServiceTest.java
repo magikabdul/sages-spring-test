@@ -61,6 +61,19 @@ class GreetServiceTest {
         assertEquals("HELLO, X!", returnedFromService.getGreeting());
     }
 
+    @Test
+    @DisplayName("greet(\"X\", false) should return a Response with HI, X! greeting")
+    public void greetXFalse_shouldReturn_responseWithHIX() {
+        String greeting = "Hi, X!";
+        Response stubbedResponse = new Response(greeting, LocalDateTime.now());
+
+        when(responseRepository.save(argThat(response -> greeting.equals(response.getGreeting()))))
+                .thenReturn(stubbedResponse);
+
+        Response returnedFromService = greetService.greet("X", false);
+        assertEquals("HI, X!", returnedFromService.getGreeting());
+    }
+
 }
 
 /*
