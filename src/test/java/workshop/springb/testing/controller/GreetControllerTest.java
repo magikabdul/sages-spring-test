@@ -1,19 +1,25 @@
 package workshop.springb.testing.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import workshop.springb.testing.model.Response;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /*
 
@@ -84,14 +90,25 @@ class GreetControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper mapper;
+
+    private final static String URL = "/greet";
+    private final static String PARAM_NAME = "name";
+    private final static String PARAM_IS_FORMAL = "isFormal";
+
+    private final static String FIELD_ID = "id";
+    private final static String FIELD_GREETING = "greeting";
+    private final static String FIELD_LOCAL_DATE_TIME = "localDateTime";
+
     @Test
     @DisplayName("http://localhost/greet -> 400")
     public void greetEndpoint_missingName_missingIsFormal_shouldReturn400() throws Exception {
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/greet")
-                .contentType("application/json"))
+        mockMvc.perform(MockMvcRequestBuilders.get(URL)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(status().isBadRequest());
     }
     /*
         TODO 3 ObjectMapper API, konwersja java<->json.
@@ -121,24 +138,33 @@ class GreetControllerTest {
     @DisplayName("http://localhost/greet?name=X&isFormal=true -> 200")
     public void greetEndpoint_name_X_IsFormal_true_shouldReturn200() throws Exception {
 
-        ResultActions resultActions = mockMvc.perform(MockMvcRequestBuilders.get("/greet")
+        var result = mockMvc.perform(MockMvcRequestBuilders.get(URL)
                 .contentType("application/json")
-                .param("name", "X")
-                .param("isFormal", "true"))
+                .param(PARAM_NAME, "X")
+                .param(PARAM_IS_FORMAL, "true"))
                 .andDo(print())
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var response = result.getResponse().getContentAsString();
+
+        var value = mapper.readValue(response, Response.class);
+
+        assertThat(value)
+                .isInstanceOf(Response.class)
+                .hasFieldOrPropertyWithValue(FIELD_GREETING, "Hello, X!");;
     }
 
     @Test
     @DisplayName("http://localhost/greet?name=X -> 400")
     public void greetEndpoint_name_X_missingIsFormal_shouldReturn400() throws Exception {
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/greet")
-                .param("name", "X")
-                .contentType("application/json")
+        mockMvc.perform(MockMvcRequestBuilders.get(URL)
+                .param(PARAM_NAME, "X")
+                .contentType(MediaType.APPLICATION_JSON)
                 )
                 .andDo(print())
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(status().isBadRequest());
     }
 
     /*
@@ -152,11 +178,13 @@ class GreetControllerTest {
     @DisplayName("http://localhost/greet?isFormal=true -> 200")
     public void greetEndpoint_missingName_IsFormal_true_shouldReturn200() throws Exception {
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/greet")
-                .contentType("application/json")
-                .param("isFormal", "true"))
+        mockMvc.perform(MockMvcRequestBuilders.get(URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .param(PARAM_IS_FORMAL, "true"))
                 .andDo(print())
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.greeting").value("Hello, World!"))
+                .andReturn();
     }
 
     @Test
@@ -167,14 +195,86 @@ class GreetControllerTest {
                 .contentType("application/json")
                 .param("isFormal", "X"))
                 .andDo(print())
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(status().isBadRequest());
+    }
+
+    @SneakyThrows
+    @Test
+    @DisplayName("POST /greet (request body fields empty) -> 200")
+    void postGreetingWithNoFieldProvided_thenReturn200() {
+        var request = Request.builder().build();
+
+        var asString = mapper.writeValueAsString(request);
+
+        MvcResult result = mockMvc.perform(post(URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asString))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Response response = mapper.readValue(result.getResponse().getContentAsString(), Response.class);
+
+        assertThat(response)
+                .hasFieldOrPropertyWithValue(FIELD_ID, 1L)
+                .hasFieldOrPropertyWithValue(FIELD_GREETING, "Hi, World!")
+                .hasFieldOrProperty(FIELD_LOCAL_DATE_TIME);
+    }
+
+    @SneakyThrows
+    @Test
+    @DisplayName("POST /greet (request body isFormal:true) -> 200")
+    void postGreetingWithFieldIsFormalTrueProvided_thenReturn200() {
+        var request = Request.builder().isFormal(true).build();
+
+        var asString = mapper.writeValueAsString(request);
+
+        MvcResult result = mockMvc.perform(post(URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asString))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Response response = mapper.readValue(result.getResponse().getContentAsString(), Response.class);
+
+        assertThat(response)
+                .hasFieldOrPropertyWithValue(FIELD_ID, 1L)
+                .hasFieldOrPropertyWithValue(FIELD_GREETING, "Hello, World!")
+                .hasFieldOrProperty(FIELD_LOCAL_DATE_TIME);
+    }
+
+    @SneakyThrows
+    @Test
+    @DisplayName("POST /greet (request body isFormal:true and name:tom) -> 200")
+    void postGreetingWithFieldIsFormalTrueAndNameProvided_thenReturn200() {
+        var request = Request.builder()
+                .name("Tom")
+                .isFormal(true)
+                .build();
+
+        var asString = mapper.writeValueAsString(request);
+
+        MvcResult result = mockMvc.perform(post(URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asString))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Response response = mapper.readValue(result.getResponse().getContentAsString(), Response.class);
+
+        assertThat(response)
+                .hasFieldOrPropertyWithValue(FIELD_ID, 1L)
+                .hasFieldOrPropertyWithValue(FIELD_GREETING, "Hello, Tom!")
+                .hasFieldOrProperty(FIELD_LOCAL_DATE_TIME);
     }
 }
 
 /*
     TODO 5 zadanie extra - bez rozwiązania ツ
 
-    W naszej aplikacji endpoin oczekuje parametrów z url, spróbuj zrefaktorować aplikację / testy tak,
-    żeby zamiast przekazywać paramtery w url, klient wysyłał POST z obiektem np. workshop.springb.testing.model.Request,
-    w postaci JSON'a, z którego metoda kontrollera wyciągnie dane do procesowania
+    W naszej aplikacji endpoint oczekuje parametrów z url, spróbuj zrefaktorować aplikację / testy tak,
+    żeby zamiast przekazywać parametry w url, klient wysyłał POST z obiektem np. workshop.spring.testing.model.Request,
+    w postaci JSON'a, z którego metoda kontrolera wyciągnie dane do procesowania
  */
